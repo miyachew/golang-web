@@ -1,9 +1,44 @@
 <html>
   <head>
     <title>Golang - news page</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous">
+      <link rel="stylesheet" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
   </head>
   <body>
-    <h1>{{ .Title }}</h1>
-    <p>{{ .News}}</p>
+    <div class="wrapper">
+      <div class="content">
+        <div class="col-md-12">
+          <h1>{{ .Title }}</h1>
+          <table border=1 cellpadding=0 cellspacing=0 id="news-table">
+            <thead>
+              <tr>
+                <th style="width:50%">Title</th>
+                <th style="width:50%">Keywords</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $key, $value := .News }}
+              <tr>
+                <td><a href="{{$value.Location}}" target="_blank" title="{{ $key }}">{{ $key }}</a></td>
+                <td>{{ $value.Keyword }}</td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+          <br>
+        </div>
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+      crossorigin="anonymous"></script>
+    <script type="text/javascript" src="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $('#news-table').DataTable({
+          autoWidth:false
+        });
+      });
+    </script>
   </body>
 </html>
