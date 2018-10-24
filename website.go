@@ -4,7 +4,8 @@ import ("fmt"
 				"net/http"
 				"html/template"
 				"io/ioutil"
-				"encoding/xml"				
+				"encoding/xml"
+				"sync"
 )
 
 type Sitemapindex struct {
@@ -34,6 +35,7 @@ func indexHandler(w http.ResponseWriter,r *http.Request){
 }
 
 const newsTemplate string = "news.html"
+var wg sync.WaitGroup
 
 func newsHandler(w http.ResponseWriter,r *http.Request){
 	newsMap := getNewsMap("https://www.washingtonpost.com/news-sitemap-index.xml")
@@ -49,23 +51,37 @@ func getUrlBytes(url string) []byte{
 	return bytes
 }
 
+func newsRoutine(c chan News, url string){
+	defer wg.Done()
+	var news News
+	res, _ := http.Get(url)
+	bytes, _ := ioutil.ReadAll(res.Body)
+	xml.Unmarshal(bytes,&news)
+	res.Body.Close()
+
+	c <- news
+}
+
 func getNewsMap(url string) map[string]FormattedNews{
 	MainXmlBytes := getUrlBytes(url)
-
 	var s Sitemapindex
 	xml.Unmarshal(MainXmlBytes, &s)
 
-	var news News
+	queue := make(chan News, 30)
+	
 	newsMap := make(map[string]FormattedNews)
+	
+	for _, Location := range s.Locations {
+		wg.Add(1)
+		go newsRoutine(queue, Location)
+	}
+	wg.Wait()
+	close(queue)
 
-	for _, location := range s.Locations {
-		bytes := getUrlBytes(location)
-		xml.Unmarshal(bytes,&news)
-		
-		for k, v := range news.Titles {
-				newsMap[v] = FormattedNews{ news.Keywords[k],news.Locations[k] }
+	for elem := range queue {
+		for k, v := range elem.Titles {
+				newsMap[v] = FormattedNews{ elem.Keywords[k],elem.Locations[k] }
 		}
-		break
 	}
 	return newsMap
 }
